@@ -1,5 +1,5 @@
-name:
-age:
-carrer:
-special note:
+name:jiwoo
+age:100
+carrer:student
+special note: good healthy
 I'll do my best.
