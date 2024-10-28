@@ -139,18 +139,6 @@ function Modify() {
   //수정한 내용으로 메모 변경
   title[userSelect - 1] = memoTitle;
   content[userSelect - 1] = memoContent;
-
-  /*가독성이 떨어진다.
-  if(userSelect > title.length){
-    memoTitle = readlineSyncModule.question("Modify the Title: ");
-    memoContent = readlineSyncModule.question("Modify the Cotent:");
-  
-
-  }
-  else{
-    console.log("There is no memo.");
-    return;
-  }*/
   //FIXME: 수정한 메모를 JSON파일에 반영하는 부분 추가
 }
 
@@ -188,11 +176,11 @@ function ExtraFunc(){
     fileContent = fileSystem.readFileSync(jsonFile, "utf-8");
     let jsonData = JSON.parse(fileContent);
 
-  //SOLVE: 배열 초기화 후 json 데이터 추가
+  //★SOLVE: 배열 초기화 후 json 데이터 추가
   title = [];
   content = [];
 
-  //FIXME: 중복으로 불러와지는 문제 발생
+  //★FIXME: 중복으로 불러와지는 문제 발생
   //title,content 배열에 json 데이터 추가
   jsonData.forEach((memo) => {
     title.push(memo.title);
