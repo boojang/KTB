@@ -30,9 +30,9 @@ import CryptoJS from 'crypto-js';
 //메뉴 리스트
 var menu = ["Write", "Inquiry", "Modify", "Delete", "ExtraFunc","Lock","Exit"];
 //제목 리스트
-var title = [];
+const title = [];
 //내용리스트
-var content = [];
+const content = [];
 
 var userSelect;
 var isright;
@@ -57,11 +57,7 @@ function showMemoList() {
 }
 
 //(2)사용자 입력부분
-function userSelectMenu() {
-  userSelect = parseInt(readlineSyncModule.question("Please Select the number: "));
-
-  
-}
+function userSelectMenu() {userSelect = parseInt(readlineSyncModule.question("Please Select the number: "));}
 
 //(3)JSON 파일로 저장
 function saveMemo() {
@@ -86,7 +82,7 @@ function saveMemo() {
 //(4)작성::여러줄 작성하기
 function writeContent() {
   let output = "";
-  console.log("Enter the content:");
+  console.log("Enter the content(if you want to stop writing, please enter 'done'):");
   while (true) {
     const contentLine = readlineSyncModule.question("");
     if (contentLine === "done") {
@@ -103,9 +99,18 @@ function writeContent() {
 //데이터 암호화
 function encryptData(data){
     const encryptedData = CryptoJS.AES.encrypt(data, secretKey).toString();
-    console.log(`Encrypted data: (잠금)${encryptedData}`);
-    return `(잠금)${encryptedData}`;
+    console.log(`Encrypted data: (lock)${encryptedData}`);
+    return `(lock)${encryptedData}`;
 }
+
+//데이터 복호화
+function decryptData(data){
+    const decryptedData = CryptoJS.AES.decrypt(data,secretKey).toString(CryptoJS.enc.Utf8);
+    console.log(`Decrypted data: ${decryptedData}`);
+}
+
+//데이터 암호화 여부
+function isEncryptedData(data){return data.startsWith("(lock)");}
 
 //메모장 기능
 
@@ -135,10 +140,9 @@ function Inquiry() {
   showMemoList();
   userSelectMenu();
   //잘못된 입력은 early return
-  if(userSelect>title.length|| userSelect <=0){
-    console.log("There is no memo.");
-    return;
-  }
+  if(userSelect>title.length|| userSelect <=0){console.log("There is no memo.");return;}
+
+  if(isEncryptedData(title[userSelect-1])){console.log("The memo is already locked");return;}
 
   //선택한 번호에 해당하는 메모,내용 출력
   console.log(`Title:` + title[userSelect - 1] + "\nContent:" + content[userSelect - 1]);
@@ -150,10 +154,10 @@ function Modify() {
   userSelectMenu();
 
   //잘못된 입력은 early return
-  if(userSelect>title.length|| userSelect <=0){
-  console.log("There is no memo.");
-  return;
-  }
+  if(userSelect>title.length|| userSelect <=0){console.log("There is no memo.");return;}
+
+  //암호화 여부 확인
+  if(isEncryptedData(title[userSelect-1])){console.log("The memo is already locked");return;}
 
   memoTitle = readlineSyncModule.question("Modify the Title: ");
   memoContent = readlineSyncModule.question("Modify the Cotent:");
@@ -170,10 +174,10 @@ function Delete(){
   userSelectMenu();
 
   //잘못된 입력은 early return
-  if(userSelect>title.length|| userSelect <=0){
-    console.log("There is no memo.");
-    return;
-  }
+  if(userSelect>title.length|| userSelect <=0){console.log("There is no memo.");return;}
+
+  //암호화 여부 확인
+  if(isEncryptedData(title[userSelect-1])){console.log("The memo is already locked");return;}
 
   //삭제 여부 확인
   isright = parseInt(readlineSyncModule.question("Do you want to delete the memo? /yes(1) or no(0):"));
@@ -201,8 +205,12 @@ function ExtraFunc(){
     let jsonData = JSON.parse(fileContent);
 
   //★SOLVE: 배열 초기화 후 json 데이터 추가
-  title = [];
-  content = [];
+  //title = [];
+  //content = [];
+
+  //FIXME : const title로 변경 후 title=[]로 초기화 에러 발생5
+    title.length=0;
+    content.length=0;
 
   //★FIXME: 중복으로 불러와지는 문제 발생
   //title,content 배열에 json 데이터 추가
@@ -222,23 +230,39 @@ function Lock(){
     userSelectMenu();
 
     //잘못된 입력은 early return
-    if(userSelect>title.length|| userSelect <=0){
-        console.log("There is no memo.");
-        return;}
+    if(userSelect>title.length|| userSelect <=0){console.log("There is no memo.");return;}
     
     //1. 잠금여부 확인 : 앞 (잠금) 여부로 판단
     //FIXME : 잠금 여부 더 정확하게 할 수 있는 방법으로 수정
-    if(title[userSelect-1].startsWith("(잠금)")){
-        console.log("The memo is already locked.");
-        return;
-    }
+    //ERROR : indexOf() 작동안됨
+    // if(title[userSelect-1].indexOf("(lock)") ===0){console.log("The memo is already locked.");return;}
+    if(isEncryptedData(title[userSelect-1])){console.log("The memo is already locked");return;}
 
     //2. 잠금x -> 잠금설정
-    encryptData(title[userSelect-1]);
-    encryptData(content[userSelect-1]);
+    //title[userSelect-1]=encryptData(title[userSelect-1]);
+    title[userSelect-1] = '(lock)'+title[userSelect-1];
+    content[userSelect-1]=encryptData(content[userSelect-1]);
+
+    console.log("The memo is locked.");
 
     //3. 잠금 후 title 앞에 (잠금)추가 -> return을 잠금으로 반환
+}
 
+function Unlock(){
+    showMemoList();
+    userSelectMenu();
+
+    //잘못된 입력은 early return
+    if(userSelect>title.length|| userSelect <=0){console.log("There is no memo.");return;}
+
+    //잠금 해제 여부 확인 -> false로 반환되면 true가 되도록
+    if(!isEncryptedData(title[userSelect-1])){console.log("The memo is already unlocked");return;}
+
+    //잠금해제
+    title[userSelect-1] = title[userSelect-1].replace('(lock)','');
+    content[userSelect-1]=decryptData(content[userSelect-1]);
+
+    console.log("The memo is unlocked.")
 
 }
 
@@ -273,7 +297,10 @@ while (isPlaying) {
     case 6://Lock
       Lock();
       break;
-    case 7:
+    case 7://Unlock
+      Unlock();
+      break;
+    case 8:
       console.log("Exit the program.");
       isPlaying = false;
       break;
